@@ -258,5 +258,20 @@ mod tests {
         assert_eq!(dist, 5);
     }
 
-    
+    #[test]
+    fn test_shorter_route_gets_updated(){
+        // assuming bidirectionality, now the edge weight for middle->end should be updated from 3 to 2.
+        let start_idx = 0;
+        let end_idx = 2;
+        let edges_from_start = vec![Edge{index_second: 1, weight: 2}];
+        let edges_from_middle = vec![Edge{index_second: 0, weight: 2}, Edge{index_second: 2, weight: 3}];
+        let edges_from_end = vec![Edge{index_second: 1, weight: 2}];
+
+        let graph = Graph{number_of_nodes:3, edges:vec![edges_from_start, edges_from_middle, edges_from_end]};
+
+        let dist = dijkstra(start_idx, end_idx, &graph);
+        assert_eq!(dist, 4);
+    }
+    //todo: add tests for path finding york to birmingham
+    //todo: find all routes; do in parallel - look at threading
 } 
