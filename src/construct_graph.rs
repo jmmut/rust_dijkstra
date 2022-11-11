@@ -18,6 +18,68 @@ pub struct GraphNode {
     node_name: String,
 }
 
+fn get_edge_info(edge: &str, graph_nodes: &Vec<GraphNode>) -> (usize, usize, usize) {
+    let edge_info: Vec<&str> = edge.split(" ").collect();
+    let start_edge = edge_info[0];
+    let end_edge = edge_info[1];
+    let edge_weight = edge_info[2].parse::<usize>().expect("");
+
+    let mut start_index = 0;
+    let mut end_index = 0;
+
+    for j in graph_nodes {
+        if j.node_name == start_edge {
+            start_index = j.index;
+        }
+        if j.node_name == end_edge {
+            end_index = j.index;
+        }
+    }
+    return (start_index, end_index, edge_weight)
+}
+
+
+fn create_new_edges(start_index: usize, end_index: usize, weight: usize) -> (Edge, Edge){
+    let new_edge = Edge {
+        index_second: end_index,
+        weight,
+    };
+    let new_edge_reverse = Edge {
+        index_second: start_index,
+        weight,
+    };
+    return (new_edge, new_edge_reverse)
+}
+
+fn update_existing_edge(graph: &mut Graph, start_index: usize, end_index: usize) -> usize{
+
+    let mut edge_index = 0;
+    let mut old_edge_weight = INFINITE_DIST;
+    for edge in &graph.edges[start_index] {
+        if edge.index_second == end_index {
+            old_edge_weight = edge.weight;
+            break;
+        }
+        edge_index += 1;
+    }
+    if old_edge_weight != INFINITE_DIST {
+        graph.edges[start_index].remove(edge_index);
+    }
+    return old_edge_weight;
+
+}
+
+fn remove_existing_edges_if_shorter_are_found(graph: &mut Graph, new_edge: &Edge, new_edge_reverse: &Edge) {
+
+    let start_index = new_edge_reverse.index_second;
+    let end_index = new_edge.index_second;
+    let old_edge_weight = update_existing_edge(graph, start_index, end_index);
+    if old_edge_weight >= new_edge.weight {
+        update_existing_edge(graph, end_index, start_index);
+    }
+
+}
+
 pub fn construct_graph_from_edges(graph_nodes: &Vec<GraphNode>, edge_data: &str) -> Graph {
     let edges: Vec<&str> = edge_data.split("\n").collect();
     let num_edges: usize = edges[0]
@@ -41,61 +103,15 @@ pub fn construct_graph_from_edges(graph_nodes: &Vec<GraphNode>, edge_data: &str)
     };
 
     for i in 1..(num_edges + 1) {
-        let edge: Vec<&str> = edges[i].split(" ").collect();
-        let start_edge = edge[0];
-        let end_edge = edge[1];
-        let edge_weight = edge[2].parse::<usize>().expect("");
 
-        let mut start_index = 0;
-        let mut end_index = 0;
+        let (start_index, end_index, weight) = get_edge_info(edges[i], graph_nodes);
+        let (new_edge, new_edge_reverse) = create_new_edges(start_index, end_index, weight);
 
-        for j in graph_nodes {
-            if j.node_name == start_edge {
-                start_index = j.index;
-            }
-            if j.node_name == end_edge {
-                end_index = j.index;
-            }
-        }
-        let new_edge = Edge {
-            index_second: end_index,
-            weight: edge_weight,
-        };
-        let new_edge_reverse = Edge {
-            index_second: start_index,
-            weight: edge_weight,
-        };
-
-        // create Edge and add to graph.
         // todo: make this not dumb
-        let mut i = 0;
-        let mut old_edge_weight = INFINITE_DIST;
-        for e in &graph.edges[start_index] {
-            if e.index_second == new_edge.index_second {
-                old_edge_weight = e.weight;
-                break;
-            }
-            i += 1;
-        }
+        remove_existing_edges_if_shorter_are_found(&mut graph, &new_edge, &new_edge_reverse);
+        graph.edges[start_index].push(new_edge);
+        graph.edges[end_index].push(new_edge_reverse);
 
-        if old_edge_weight > new_edge.weight {
-            if old_edge_weight != INFINITE_DIST {
-                graph.edges[start_index].remove(i);
-            }
-            graph.edges[start_index].push(new_edge);
-
-            i = 0;
-            for e in &graph.edges[end_index] {
-                if e.index_second == new_edge_reverse.index_second {
-                    break;
-                }
-                i += 1;
-            }
-            if old_edge_weight != INFINITE_DIST {
-                graph.edges[end_index].remove(i);
-            }
-            graph.edges[end_index].push(new_edge_reverse);
-        }
     }
 
     return graph;
