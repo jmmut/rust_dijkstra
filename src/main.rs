@@ -80,7 +80,7 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> usize {
     return dist[end_idx];
 }
 
-fn main() -> Result<String, String> {
+fn main() -> Result<(), String> {
     // read input
     let (node_data, edge_data, routes_to_find) = read_input("src/uk.txt".to_string());
     let graph_nodes: Vec<GraphNode> = get_nodes(&node_data);
@@ -98,8 +98,8 @@ fn main() -> Result<String, String> {
     }
     let dist = dijkstra(start_idx, end_idx, &graph);
     println!("dist: {}", dist);
-    return Ok(format!("Distance travelled = {dist}", dist=dist));
     //todo: find all routes; do in parallel - look at threading
+    Ok()
 }
 
 #[cfg(test)]

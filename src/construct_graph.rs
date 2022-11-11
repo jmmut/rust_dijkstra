@@ -14,25 +14,31 @@ pub struct Graph {
     edges: Vec<Vec<Edge>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GraphNode {
     index: usize,
     node_name: String,
 }
 
-fn get_edge_info(edge: &str, graph_nodes: &Vec<GraphNode>) -> (usize, usize, usize) {
+fn get_edge_info(edge: &str, graph_nodes: &Vec<GraphNode>) -> Result<(usize, usize, usize), String> {
     let edge_info: Vec<&str> = edge.split(" ").collect();
     let start_edge = edge_info[0];
     let end_edge = edge_info[1];
     let edge_weight = edge_info[2].parse::<usize>().expect(&format!("Distance between edges should be an integer, {edge_weight} found.", edge_weight=edge_info[2]));
-
+    // todo: reove repetition
     let start_node = graph_nodes.iter().find(|&x| x.node_name == start_edge);
-    let start_index = start_node.expect(&format!("Nodes in edges should be present in node list. {start_edge} not found.", start_edge=start_edge)).index;
+    if start_node == None {
+        return Err(format!("Nodes in edges should be present in node list. {start_edge} not found.", start_edge=start_edge));
+    }
+    let start_index = start_node.expect("").index;
 
     let end_node = graph_nodes.iter().find(|&x| x.node_name == end_edge);
-    let end_index = end_node.expect(&format!("Nodes in edges should be present in node list. {end_edge} not found.", end_edge=end_edge)).index;
+    if end_node == None {
+        return Err(format!("Nodes in edges should be present in node list. {end_edge} not found.", end_edge=end_edge));
+    }
+    let end_index = end_node.expect("").index;
 
-    return (start_index, end_index, edge_weight)
+    return Ok((start_index, end_index, edge_weight))
 }
 
 
@@ -99,7 +105,11 @@ pub fn construct_graph_from_edges(graph_nodes: &Vec<GraphNode>, edge_data: &str)
 
     for i in 1..(num_edges + 1) {
 
-        let (start_index, end_index, weight) = get_edge_info(edges[i], graph_nodes);
+        let edge_result = get_edge_info(edges[i], graph_nodes);
+        if let Err(e) = edge_result {
+            return Err(e)
+        }
+        let (start_index, end_index, weight) = edge_result.unwrap();
         let (new_edge, new_edge_reverse) = create_new_edges(start_index, end_index, weight);
 
         // todo: make this not dumb
@@ -280,10 +290,17 @@ mod graph_only_tests {
         assert_eq!(end_idx, 2);
     }
     #[rstest]
-    fn test_route_finding_with_incorrect_nodes() {
+    fn test_route_finding_with_incorrect_number_of_nodes() {
         let (_, expected_graph, graph_nodes) = set_up_tests();
         let edge_data = "4\nI G 167\nI E 158\nG E 45\nI G 17\nE I 1".to_string();
 
-        assert_eq!(Err(format!("Unexpected number of edges. Expected: 4, actual: 5")), construct_graph_from_edges(&graph_nodes, &edge_data))
+        assert_eq!(Err("Unexpected number of edges. Expected: 4, actual: 5".to_string()), construct_graph_from_edges(&graph_nodes, &edge_data))
+    }
+    #[rstest]
+    fn test_route_finding_with_incorrect_nodes() {
+        let (_, expected_graph, graph_nodes) = set_up_tests();
+        let edge_data = "4\nI G 167\nI E 158\nG E 45\nI N 17".to_string();
+
+        assert_eq!(Err("Nodes in edges should be present in node list. N not found.".to_string()), construct_graph_from_edges(&graph_nodes, &edge_data))
     }
 }
