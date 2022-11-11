@@ -58,7 +58,7 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> usize {
         if cfg!(debug_assertions) {
             println!("nodes can visit: {:?}", nodes_can_visit);
         }
-        
+
         // reverse sort
         let mut min_weight = INFINITE_DIST;
         let mut idx = INFINITE_DIST;
@@ -96,6 +96,8 @@ fn main() {
     }
     let dist = dijkstra(start_idx, end_idx, &graph);
     println!("dist: {}", dist);
+
+    //todo: find all routes; do in parallel - look at threading
 }
 
 #[cfg(test)]
@@ -208,8 +210,7 @@ mod tests {
         let dist = dijkstra(0, 2, &graph);
         assert_eq!(dist, 4);
     }
-    //todo: add tests for path finding york to birmingham
-    //todo: find all routes; do in parallel - look at threading
+
     #[test]
     fn test_edges_not_explicitly_in_both_directions() {
         let start_idx = 0;

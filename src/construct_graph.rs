@@ -123,7 +123,7 @@ fn get_nodes(node_data: &str) -> Vec<GraphNode> {
     if cfg!(debug_assertions) {
         println!("graph nodes: {:?}", graph_nodes);
     }
-    
+
 
     return graph_nodes;
 }
@@ -173,18 +173,18 @@ mod graph_only_tests {
     }
     #[test]
     fn test_basic_input() {
-        let contents = "4\nInverness\nGlasgow\nEdinburgh\nNewcastle\n\n5\nInverness Glasgow 167\nInverness Edinburgh 158\nGlasgow Edinburgh 45\nGlasgow Newcastle 145\nEdinburgh Newcastle 107\n\nGlasgow Edinburgh\nEdinburgh Inverness\n\n";
+        let contents = "4\nI\nG\nE\nN\n\n5\nI G 167\nI E 158\nG E 45\nG N 145\nE N 107\n\nG E\nE I\n\n";
         let data: Vec<&str> = contents.split("\n\n").collect();
 
         //let node_data = data[0].to_string();
         //let edge_data = data[1].to_string();
         let routes_to_find = data[2].to_string();
 
-        assert_eq!(routes_to_find, "Glasgow Edinburgh\nEdinburgh Inverness");
+        assert_eq!(routes_to_find, "G E\nE I");
     }
     #[test]
     fn test_multiple_start_edges_input() {
-        let contents = "4\nInverness\nGlasgow\nEdinburgh\nNewcastle\n\n6\nInverness Glasgow 167\nInverness Edinburgh 158\nGlasgow Edinburgh 45\nGlasgow Newcastle 145\nEdinburgh Newcastle 107\nInverness Glasgow 17\n\nGlasgow Edinburgh\nEdinburgh Inverness\n\n";
+        let contents = "3\nI\nG\nE\n\n4\nI G 167\nI E 158\nG E 45\nI G 17\n\nG E\nE I\n\n";
         let data: Vec<&str> = contents.split("\n\n").collect();
 
         let node_data = data[0].to_string();
@@ -192,9 +192,9 @@ mod graph_only_tests {
 
         let graph_nodes: Vec<GraphNode> = get_nodes(&node_data);
         let graph = construct_graph_from_edges(&graph_nodes, &edge_data);
-        // graph should not contain the Inverness->Glasgow 167 path
+        // graph should not contain the I->G 167 path, as this should be updated by the I->G 17 path.
         let expected_graph = Graph {
-            number_of_nodes: 4,
+            number_of_nodes: 3,
             edges: vec![
                 vec![
                     Edge {
@@ -212,10 +212,6 @@ mod graph_only_tests {
                         weight: 45,
                     },
                     Edge {
-                        index_second: 3,
-                        weight: 145,
-                    },
-                    Edge {
                         index_second: 0,
                         weight: 17,
                     },
@@ -228,20 +224,6 @@ mod graph_only_tests {
                     Edge {
                         index_second: 1,
                         weight: 45,
-                    },
-                    Edge {
-                        index_second: 3,
-                        weight: 107,
-                    },
-                ],
-                vec![
-                    Edge {
-                        index_second: 1,
-                        weight: 145,
-                    },
-                    Edge {
-                        index_second: 2,
-                        weight: 107,
                     },
                 ],
             ],
@@ -263,11 +245,7 @@ mod graph_only_tests {
             GraphNode {
                 index: 2,
                 node_name: "Edinburgh".to_string(),
-            },
-            GraphNode {
-                index: 3,
-                node_name: "Newcastle".to_string(),
-            },
+            }
         ];
 
         let (start_idx, end_idx) = get_route(input_line, graph_nodes);
