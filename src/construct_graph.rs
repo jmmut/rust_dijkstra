@@ -160,7 +160,7 @@ fn read_input(filepath: String) -> (String, String, String) {
     return (node_data, edge_data, routes_to_find);
 }
 
-fn get_route(routes_to_find: &str, graph_nodes: Vec<GraphNode>) -> (usize, usize) {
+fn get_route(routes_to_find: &str, graph_nodes: &Vec<GraphNode>) -> (usize, usize) {
     let routes: Vec<&str> = routes_to_find.split("\n").collect();
     let first_route: Vec<&str> = routes[0].split(" ").collect(); //todo: other routes
     let start_str = first_route[0];

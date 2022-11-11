@@ -10,7 +10,52 @@ struct Node {
     dist_to_node: usize,
 }
 
-fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> usize {
+fn get_route_travelled(original_start_idx: usize, end_idx: usize, parents_of_nodes_visited: Vec<usize>) -> Vec<usize> {
+    //go backwards through the nodes to find the parent node.
+    let mut idx = end_idx;
+    let mut nodes_in_order : Vec<usize> = Vec::new();
+    nodes_in_order.push(end_idx);
+    while idx != original_start_idx {
+        idx = parents_of_nodes_visited[idx];
+        nodes_in_order.push(idx);
+    }
+
+    nodes_in_order.reverse();
+    if cfg!(debug_assertions) {
+        println!("nodes: {:?}", nodes_in_order);
+    }
+
+    return nodes_in_order
+}
+
+fn get_human_readable_route(nodes_in_order: Vec<usize>, graph_nodes: Vec<GraphNode>) -> Vec<String> {
+
+    let mut path_travelled : Vec<String> = Vec::new();
+    for node_idx in nodes_in_order {
+        let node  = &graph_nodes[node_idx];
+
+        if node.index != node_idx {
+            println!("Error in the indexing for the route travelled.");
+            //todo deal with this properly
+        }
+        else {
+            path_travelled.push(node.node_name.to_string());
+        }
+    }
+    return path_travelled
+}
+
+fn print_route(route: Vec<String>) -> String {
+    let mut final_path : String = route[0].to_string();
+    for i in 1..route.len() {
+        final_path = format!("{}->{}", final_path, route[i]);
+    }
+
+    return final_path
+}
+
+fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<usize>) {
+    let original_start_idx = start_idx;
     let number_of_nodes = graph.number_of_nodes;
 
     let mut dist = Vec::new();
@@ -20,13 +65,15 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> usize {
 
     let mut nodes_can_visit: BTreeMap<usize, Node> = BTreeMap::new();
     let mut nodes_visited: Vec<usize> = Vec::new();
+    // for now, store the parents in a separate vector, with the idx being the idx of the child.
+    // todo; store the node rather than two separate vectors
+    let mut parents_of_nodes_visited: Vec<usize> = Vec::with_capacity(number_of_nodes);
+    for _ in 0..number_of_nodes {
+        parents_of_nodes_visited.push(INFINITE_DIST);
+    }
 
     dist[start_idx] = 0;
     while start_idx != end_idx {
-        println!(
-            "start_idx = {}; end_idx = {}, current_dist = {}",
-            start_idx, end_idx, dist[start_idx]
-        );
         nodes_visited.push(start_idx);
 
         // which nodes can we visit
@@ -66,18 +113,20 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> usize {
                 idx = node.index;
             }
         }
-
         let closest_node = nodes_can_visit.remove(&idx).unwrap();
-        // go to node and update all the connecting nodes.
 
         if (closest_node.index != start_idx) && (!nodes_visited.contains(&closest_node.index)) {
             dist[closest_node.index] = dist[closest_node.parent_idx] + closest_node.dist_to_node;
             start_idx = closest_node.index;
             nodes_visited.push(closest_node.index);
+            parents_of_nodes_visited[closest_node.index] = closest_node.parent_idx;
         }
-        // else continue and remove the next thing from the PQ
+
     }
-    return dist[end_idx];
+
+    let nodes_in_order = get_route_travelled(original_start_idx, end_idx, parents_of_nodes_visited);
+
+    return (dist[end_idx], nodes_in_order);
 }
 
 fn main() -> Result<(), String> {
@@ -92,14 +141,16 @@ fn main() -> Result<(), String> {
     if cfg!(debug_assertions) {
         println!("graph: {:?}", graph);
     }
-    let (start_idx, end_idx) = get_route(&routes_to_find, graph_nodes);
+    let (start_idx, end_idx) = get_route(&routes_to_find, &graph_nodes);
     if cfg!(debug_assertions) {
         println!("finding route from {} to {}", start_idx, end_idx);
     }
-    let dist = dijkstra(start_idx, end_idx, &graph);
-    println!("dist: {}", dist);
+    let (dist, route) = dijkstra(start_idx, end_idx, &graph);
+    let human_readable_route = get_human_readable_route(route, graph_nodes);
+    println!("Route travelled: {}", print_route(human_readable_route));
+    println!("Dist: {}", dist);
     //todo: find all routes; do in parallel - look at threading
-    Ok()
+    Ok(())
 }
 
 #[cfg(test)]
@@ -133,7 +184,7 @@ mod tests {
             edges: vec![edges_from_start, edges_from_middle, edges_from_end],
         };
 
-        let dist = dijkstra(start_idx, end_idx, &graph);
+        let (dist, _) = dijkstra(start_idx, end_idx, &graph);
         assert_eq!(dist, 5);
     }
     #[test]
@@ -170,7 +221,7 @@ mod tests {
             edges: vec![edges_from_start, edges_from_middle, edges_from_end],
         };
 
-        let dist = dijkstra(start_idx, end_idx, &graph);
+        let (dist, _) = dijkstra(start_idx, end_idx, &graph);
         assert_eq!(dist, 5);
     }
     #[test]
@@ -209,7 +260,7 @@ mod tests {
             ],
         };
         assert_eq!(expected_graph, graph);
-        let dist = dijkstra(0, 2, &graph);
+        let (dist, _) = dijkstra(0, 2, &graph);
         assert_eq!(dist, 4);
     }
     #[test]
@@ -230,7 +281,7 @@ mod tests {
             edges: vec![edges_from_start, edges_from_middle],
         };
 
-        let dist = dijkstra(start_idx, end_idx, &graph);
+        let (dist, _) = dijkstra(start_idx, end_idx, &graph);
         assert_eq!(dist, 5);
     }
 }
