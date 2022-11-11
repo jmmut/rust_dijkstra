@@ -1,3 +1,5 @@
+use rstest::*;
+
 pub const INFINITE_DIST: usize = 100000000;
 
 #[derive(Debug, PartialEq)]
@@ -72,14 +74,15 @@ fn remove_existing_edges_if_shorter_are_found(graph: &mut Graph, new_edge: &Edge
 
 }
 
-pub fn construct_graph_from_edges(graph_nodes: &Vec<GraphNode>, edge_data: &str) -> Graph {
+pub fn construct_graph_from_edges(graph_nodes: &Vec<GraphNode>, edge_data: &str) -> Result<Graph, String> {
     let edges: Vec<&str> = edge_data.split("\n").collect();
     let num_edges: usize = edges[0]
         .parse::<usize>()
         .expect("Expect an integer number of edges.");
 
-    if edges.len() != num_edges + 1 {
-        println!("Unexpected number of edges");
+    if num_edges != edges.len() -1 {
+        return Err(format!("Unexpected number of edges. Expected: {num_edges}, actual: {edges_len}",
+                            num_edges=num_edges, edges_len=edges.len()-1,));
     }
 
     let num_nodes = graph_nodes.len();
@@ -106,7 +109,7 @@ pub fn construct_graph_from_edges(graph_nodes: &Vec<GraphNode>, edge_data: &str)
 
     }
 
-    return graph;
+    return Ok(graph);
 }
 
 fn get_nodes(node_data: &str) -> Vec<GraphNode> {
@@ -168,36 +171,10 @@ fn get_route(routes_to_find: &str, graph_nodes: Vec<GraphNode>) -> (usize, usize
 #[cfg(test)]
 mod graph_only_tests {
     use super::*;
-    #[test]
-    fn test_parsing_data() {
-        assert_eq!(1, 1)
-        //todo: add tests for correct parsing of data (low priority)
-        // e.g. if num_nodes or num_edges is incorrect
-        // e.g. if there are edges to nodes that don't exist
-        // e.g. if spacing/formatting of input is incorrect
-    }
-    #[test]
-    fn test_basic_input() {
-        let contents = "4\nI\nG\nE\nN\n\n5\nI G 167\nI E 158\nG E 45\nG N 145\nE N 107\n\nG E\nE I\n\n";
-        let data: Vec<&str> = contents.split("\n\n").collect();
 
-        //let node_data = data[0].to_string();
-        //let edge_data = data[1].to_string();
-        let routes_to_find = data[2].to_string();
-
-        assert_eq!(routes_to_find, "G E\nE I");
-    }
-    #[test]
-    fn test_multiple_start_edges_input() {
-        let contents = "3\nI\nG\nE\n\n4\nI G 167\nI E 158\nG E 45\nI G 17\n\nG E\nE I\n\n";
-        let data: Vec<&str> = contents.split("\n\n").collect();
-
-        let node_data = data[0].to_string();
-        let edge_data = data[1].to_string();
-
-        let graph_nodes: Vec<GraphNode> = get_nodes(&node_data);
-        let graph = construct_graph_from_edges(&graph_nodes, &edge_data);
-        // graph should not contain the I->G 167 path, as this should be updated by the I->G 17 path.
+    #[fixture]
+    fn set_up_tests() -> (String, Graph, Vec<GraphNode>) {
+        let contents = "3\nI\nG\nE\n\n4\nI G 167\nI E 158\nG E 45\nI G 17\n\nG E\nE I\n\n".to_string();
         let expected_graph = Graph {
             number_of_nodes: 3,
             edges: vec![
@@ -233,7 +210,52 @@ mod graph_only_tests {
                 ],
             ],
         };
-        assert_eq!(expected_graph, graph);
+
+        let graph_nodes = vec![
+            GraphNode {
+                index: 0,
+                node_name: "I".to_string()
+            },
+            GraphNode {
+                index: 1,
+                node_name: "G".to_string()
+            },
+            GraphNode {
+                index: 2,
+                node_name: "E".to_string()
+            }];
+        return (contents, expected_graph, graph_nodes)
+    }
+
+    //#[test]
+    // fn test_parsing_data() {
+    //     //todo: add tests for correct parsing of data (low priority)
+    //     // e.g. if num_nodes or num_edges is incorrect
+    //     // e.g. if there are edges to nodes that don't exist
+    //     // e.g. if spacing/formatting of input is incorrect
+    // }
+    #[test]
+    fn test_basic_input() {
+        let contents = "4\nI\nG\nE\nN\n\n5\nI G 167\nI E 158\nG E 45\nG N 145\nE N 107\n\nG E\nE I\n\n";
+        let data: Vec<&str> = contents.split("\n\n").collect();
+
+        let routes_to_find = data[2].to_string();
+
+        assert_eq!(routes_to_find, "G E\nE I");
+    }
+    #[rstest]
+    fn test_multiple_start_edges_input() {
+        let (contents, expected_graph, _) = set_up_tests();
+        let data: Vec<&str> = contents.split("\n\n").collect();
+
+        let node_data = data[0].to_string();
+        let edge_data = data[1].to_string();
+
+        let graph_nodes: Vec<GraphNode> = get_nodes(&node_data);
+        let graph = construct_graph_from_edges(&graph_nodes, &edge_data);
+        // graph should not contain the I->G 167 path, as this should be updated by the I->G 17 path.
+
+        assert_eq!(Ok(expected_graph), graph);
     }
     #[test]
     fn test_route_extraction() {
@@ -257,12 +279,11 @@ mod graph_only_tests {
         assert_eq!(start_idx, 1);
         assert_eq!(end_idx, 2);
     }
-    #[test]
-    fn test_route_finding() {
-        assert_eq!(1, 1)
-        //todo: add tests for correct parsing of data (low priority)
-        // e.g. if input file contains multiple edges from A->B with diff weights
-        // e.g. if all edges result in a loop
-        // e.g. no routes can be found
+    #[rstest]
+    fn test_route_finding_with_incorrect_nodes() {
+        let (_, expected_graph, graph_nodes) = set_up_tests();
+        let edge_data = "4\nI G 167\nI E 158\nG E 45\nI G 17\nE I 1".to_string();
+
+        assert_eq!(Err(format!("Unexpected number of edges. Expected: 4, actual: 5")), construct_graph_from_edges(&graph_nodes, &edge_data))
     }
 }
