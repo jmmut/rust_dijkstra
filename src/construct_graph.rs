@@ -22,19 +22,14 @@ fn get_edge_info(edge: &str, graph_nodes: &Vec<GraphNode>) -> (usize, usize, usi
     let edge_info: Vec<&str> = edge.split(" ").collect();
     let start_edge = edge_info[0];
     let end_edge = edge_info[1];
-    let edge_weight = edge_info[2].parse::<usize>().expect("");
+    let edge_weight = edge_info[2].parse::<usize>().expect(&format!("Distance between edges should be an integer, {edge_weight} found.", edge_weight=edge_info[2]));
 
-    let mut start_index = 0;
-    let mut end_index = 0;
+    let start_node = graph_nodes.iter().find(|&x| x.node_name == start_edge);
+    let start_index = start_node.expect(&format!("Nodes in edges should be present in node list. {start_edge} not found.", start_edge=start_edge)).index;
 
-    for j in graph_nodes {
-        if j.node_name == start_edge {
-            start_index = j.index;
-        }
-        if j.node_name == end_edge {
-            end_index = j.index;
-        }
-    }
+    let end_node = graph_nodes.iter().find(|&x| x.node_name == end_edge);
+    let end_index = end_node.expect(&format!("Nodes in edges should be present in node list. {end_edge} not found.", end_edge=end_edge)).index;
+
     return (start_index, end_index, edge_weight)
 }
 
@@ -51,17 +46,14 @@ fn create_new_edges(start_index: usize, end_index: usize, weight: usize) -> (Edg
     return (new_edge, new_edge_reverse)
 }
 
-fn update_existing_edge(graph: &mut Graph, start_index: usize, end_index: usize) -> usize{
+fn update_existing_edge(graph: &mut Graph, start_index: usize, end_index: usize) -> usize {
 
-    let mut edge_index = 0;
-    let mut old_edge_weight = INFINITE_DIST;
-    for edge in &graph.edges[start_index] {
-        if edge.index_second == end_index {
-            old_edge_weight = edge.weight;
-            break;
-        }
-        edge_index += 1;
+    let edge_index_opt : Option<usize> = graph.edges[start_index].iter().position(|x| x.index_second == end_index);
+    if None == edge_index_opt {
+        return INFINITE_DIST;
     }
+    let edge_index = edge_index_opt.unwrap();
+    let old_edge_weight = graph.edges[start_index][edge_index].weight;
     if old_edge_weight != INFINITE_DIST {
         graph.edges[start_index].remove(edge_index);
     }
@@ -140,7 +132,6 @@ fn get_nodes(node_data: &str) -> Vec<GraphNode> {
         println!("graph nodes: {:?}", graph_nodes);
     }
 
-
     return graph_nodes;
 }
 
@@ -161,18 +152,16 @@ fn get_route(routes_to_find: &str, graph_nodes: Vec<GraphNode>) -> (usize, usize
     let first_route: Vec<&str> = routes[0].split(" ").collect(); //todo: other routes
     let start_str = first_route[0];
     let end_str = first_route[1];
-    let mut start_idx = 0;
-    let mut end_idx = 0;
 
     let number_of_nodes = graph_nodes.len();
-    for i in 0..number_of_nodes {
-        if graph_nodes[i].node_name == start_str {
-            start_idx = graph_nodes[i].index;
-        }
-        if graph_nodes[i].node_name == end_str {
-            end_idx = graph_nodes[i].index;
-        }
-    }
+
+    // todo: remove repeated logic for node-name matching
+    let start_node = graph_nodes.iter().find(|&x| x.node_name == start_str);
+    let start_idx = start_node.expect(&format!("Nodes in edges should be present in node list. {start_edge} not found.", start_edge=start_str)).index;
+
+    let end_node = graph_nodes.iter().find(|&x| x.node_name == end_str);
+    let end_idx = end_node.expect(&format!("Nodes in edges should be present in node list. {end_edge} not found.", end_edge=end_str)).index;
+
     return (start_idx, end_idx);
 }
 
