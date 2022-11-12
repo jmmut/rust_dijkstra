@@ -1,0 +1,16 @@
+5
+SelfReferential
+MultiplePathsA
+MultiplePathsB
+DisconnectedA
+DisconnectedB
+
+4
+SelfReferential SelfReferential 1
+MultiplePathsA MultiplePathsB 2
+MultiplePathsB MultiplePathsA 3
+MultiplePathsA MultiplePathsB 4
+
+SelfReferential SelfReferential
+MultiplePathsA MultiplePathsB
+DisconnectedA DisconnectedB

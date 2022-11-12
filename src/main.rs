@@ -1,6 +1,10 @@
 use core::cmp::min;
 use std::collections::BTreeMap;
 use std::fs;
+use std::env;
+use assert_cmd::prelude::*; // Add methods on commands
+use predicates::prelude::*; // Used for writing assertions
+use std::process::Command; // Run programs
 include!("construct_graph.rs");
 
 #[derive(Debug, Clone, PartialEq)]
@@ -128,8 +132,13 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<
 
 fn main() -> Result<(), String> {
     // read input
-    let filepath = "src/uk.txt".to_string();
-    let contents = fs::read_to_string(filepath).expect("Should have been able to read the file");
+    let args: Vec<String> = env::args().collect();
+    //dbg!(args); //todo: use dbg! rather than cfg 
+    if args.len() != 2 {
+        return Err("Please provide relative file path as input arg, i.e. `$ cargo run <src/test/uk.txt>`".to_string());
+    }
+    let filename = &args[1];
+    let contents = fs::read_to_string(filename.to_string()).expect("Should have been able to read the file");
     let data = read_input(contents);
     if let Err(e) = data {
         return Err(format!("Graph construction failed due to {e}", e=e));
@@ -293,5 +302,30 @@ mod tests {
 
         let (dist, _) = dijkstra(start_idx, end_idx, &graph);
         assert_eq!(dist, 5);
+    }   
+    #[test]
+    fn find_correct_route_in_file() -> Result<(), Box<dyn std::error::Error>> {
+        
+        let mut cmd = Command::cargo_bin("rust_dijkstra")?;
+        cmd.arg("src/test/uk.txt".to_string());
+        cmd.assert()
+            .success()
+            .stdout(predicate::str::contains("Route travelled: Glasgow->Edinburgh\nDist: 45\n"));
+
+        Ok(())
+        //todo test more complex routes than this.
+        //test output when multiple paths have the same length.
+    }
+    #[test]
+    fn find_self_referential_route_in_file() -> Result<(), Box<dyn std::error::Error>> {
+        //unimplemented
+        let mut cmd = Command::cargo_bin("rust_dijkstra")?;
+        cmd.arg("src/test/edge-cases.txt".to_string());
+        cmd.assert()
+            .success()
+            .stdout(predicate::str::contains("Route is self referential. Dist from SelfReferential to SelfReferential = 0"));
+
+        Ok(())
+        // todo, once the routes are parallelised, can use the edge-cases.txt to check for disconnected paths
     }
 }

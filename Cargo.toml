@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 rstest = "0.15.0"
+assert_cmd = "2.0"
+predicates = "2.1"
