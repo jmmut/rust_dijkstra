@@ -28,21 +28,20 @@ fn get_route_travelled(original_start_idx: usize, end_idx: usize, parents_of_nod
     return nodes_in_order
 }
 
-fn get_human_readable_route(nodes_in_order: Vec<usize>, graph_nodes: Vec<GraphNode>) -> Vec<String> {
+fn get_human_readable_route(nodes_in_order: Vec<usize>, graph_nodes: Vec<GraphNode>) -> Result<Vec<String>, String> {
 
     let mut path_travelled : Vec<String> = Vec::new();
     for node_idx in nodes_in_order {
         let node  = &graph_nodes[node_idx];
 
         if node.index != node_idx {
-            println!("Error in the indexing for the route travelled.");
-            //todo deal with this properly
+            return Err("Error in the indexing for the route travelled.".to_string());
         }
         else {
             path_travelled.push(node.node_name.to_string());
         }
     }
-    return path_travelled
+    return Ok(path_travelled)
 }
 
 fn print_route(route: Vec<String>) -> String {
@@ -77,10 +76,8 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<
         nodes_visited.push(start_idx);
 
         // which nodes can we visit
-        // todo: rather than dont add if contains, check weight and minimise, update parent
         for i in &graph.edges[start_idx] {
             // if present, minimise weight
-            // todo: don't use a vec for this, maybe hashmap?
             if nodes_can_visit.contains_key(&i.index_second) {
                 nodes_can_visit
                     .entry(i.index_second)
@@ -131,7 +128,13 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<
 
 fn main() -> Result<(), String> {
     // read input
-    let (node_data, edge_data, routes_to_find) = read_input("src/uk.txt".to_string());
+    let filepath = "src/uk.txt".to_string();
+    let contents = fs::read_to_string(filepath).expect("Should have been able to read the file");
+    let data = read_input(contents);
+    if let Err(e) = data {
+        return Err(format!("Graph construction failed due to {e}", e=e));
+    }
+    let (node_data, edge_data, routes_to_find) = data.unwrap();
     let graph_nodes: Vec<GraphNode> = get_nodes(&node_data);
     let graph_result = construct_graph_from_edges(&graph_nodes, &edge_data);
     if let Err(e) = graph_result {
@@ -141,13 +144,20 @@ fn main() -> Result<(), String> {
     if cfg!(debug_assertions) {
         println!("graph: {:?}", graph);
     }
-    let (start_idx, end_idx) = get_route(&routes_to_find, &graph_nodes);
+    let route_result = get_route(&routes_to_find, &graph_nodes);
+    if let Err(e) = route_result {
+        return Err(format!("Graph construction failed due to incorrect route; {e}", e=e));
+    }
+    let (start_idx, end_idx) = route_result.unwrap();
     if cfg!(debug_assertions) {
         println!("finding route from {} to {}", start_idx, end_idx);
     }
     let (dist, route) = dijkstra(start_idx, end_idx, &graph);
     let human_readable_route = get_human_readable_route(route, graph_nodes);
-    println!("Route travelled: {}", print_route(human_readable_route));
+    if let Err(e) = human_readable_route {
+        return Err(format!("Something went wrong with indexing the nodes. {e}", e=e));
+    }
+    println!("Route travelled: {}", print_route(human_readable_route.unwrap()));
     println!("Dist: {}", dist);
     //todo: find all routes; do in parallel - look at threading
     Ok(())

@@ -22,6 +22,9 @@ pub struct GraphNode {
 
 fn get_edge_info(edge: &str, graph_nodes: &Vec<GraphNode>) -> Result<(usize, usize, usize), String> {
     let edge_info: Vec<&str> = edge.split(" ").collect();
+    if edge_info.len() != 3 {
+        return Err(format!("Route {edge:?} is invalid. Please check the input.", edge=edge_info));
+    }
     let start_edge = edge_info[0];
     let end_edge = edge_info[1];
     let edge_weight = edge_info[2].parse::<usize>().expect(&format!("Distance between edges should be an integer, {edge_weight} found.", edge_weight=edge_info[2]));
@@ -148,21 +151,25 @@ fn get_nodes(node_data: &str) -> Vec<GraphNode> {
     return graph_nodes;
 }
 
-fn read_input(filepath: String) -> (String, String, String) {
-    let contents = fs::read_to_string(filepath).expect("Should have been able to read the file");
+fn read_input(contents: String) -> Result<(String, String, String), String> {
 
     let data: Vec<&str> = contents.split("\n\n").collect();
-
+    if data.len() != 3 {
+        return Err("Invalid file format.".to_string());
+    }
     let node_data = data[0].to_string();
     let edge_data = data[1].to_string();
     let routes_to_find = data[2].to_string();
 
-    return (node_data, edge_data, routes_to_find);
+    return Ok((node_data, edge_data, routes_to_find));
 }
 
-fn get_route(routes_to_find: &str, graph_nodes: &Vec<GraphNode>) -> (usize, usize) {
+fn get_route(routes_to_find: &str, graph_nodes: &Vec<GraphNode>) -> Result<(usize, usize), String> {
     let routes: Vec<&str> = routes_to_find.split("\n").collect();
     let first_route: Vec<&str> = routes[0].split(" ").collect(); //todo: other routes
+    if first_route.len() != 2 {
+        return Err(format!("Route {route:?} is invalid. Please check the input.", route=first_route));
+    }
     let start_str = first_route[0];
     let end_str = first_route[1];
 
@@ -170,12 +177,17 @@ fn get_route(routes_to_find: &str, graph_nodes: &Vec<GraphNode>) -> (usize, usiz
 
     // todo: remove repeated logic for node-name matching
     let start_node = graph_nodes.iter().find(|&x| x.node_name == start_str);
-    let start_idx = start_node.expect(&format!("Nodes in edges should be present in node list. {start_edge} not found.", start_edge=start_str)).index;
+    if start_node == None {
+        return Err(format!("Nodes in edges should be present in node list. {start_edge} not found.", start_edge=start_str));
+    }
+    let start_idx = start_node.unwrap().index;
 
     let end_node = graph_nodes.iter().find(|&x| x.node_name == end_str);
-    let end_idx = end_node.expect(&format!("Nodes in edges should be present in node list. {end_edge} not found.", end_edge=end_str)).index;
-
-    return (start_idx, end_idx);
+    if end_node == None {
+        return Err(format!("Nodes in edges should be present in node list. {end_edge} not found.", end_edge=end_str));
+    }
+    let end_idx = end_node.unwrap().index;
+    return Ok((start_idx, end_idx));
 }
 
 #[cfg(test)]
@@ -237,13 +249,6 @@ mod graph_only_tests {
         return (contents, expected_graph, graph_nodes)
     }
 
-    //#[test]
-    // fn test_parsing_data() {
-    //     //todo: add tests for correct parsing of data (low priority)
-    //     // e.g. if num_nodes or num_edges is incorrect
-    //     // e.g. if there are edges to nodes that don't exist
-    //     // e.g. if spacing/formatting of input is incorrect
-    // }
     #[test]
     fn test_basic_input() {
         let contents = "4\nI\nG\nE\nN\n\n5\nI G 167\nI E 158\nG E 45\nG N 145\nE N 107\n\nG E\nE I\n\n";
@@ -285,22 +290,33 @@ mod graph_only_tests {
             }
         ];
 
-        let (start_idx, end_idx) = get_route(input_line, graph_nodes);
+        let (start_idx, end_idx) = get_route(input_line, &graph_nodes).expect("");
         assert_eq!(start_idx, 1);
         assert_eq!(end_idx, 2);
     }
     #[rstest]
     fn test_route_finding_with_incorrect_number_of_nodes() {
-        let (_, expected_graph, graph_nodes) = set_up_tests();
+        let (_, _, graph_nodes) = set_up_tests();
         let edge_data = "4\nI G 167\nI E 158\nG E 45\nI G 17\nE I 1".to_string();
 
         assert_eq!(Err("Unexpected number of edges. Expected: 4, actual: 5".to_string()), construct_graph_from_edges(&graph_nodes, &edge_data))
     }
     #[rstest]
     fn test_route_finding_with_incorrect_nodes() {
-        let (_, expected_graph, graph_nodes) = set_up_tests();
+        let (_, _, graph_nodes) = set_up_tests();
         let edge_data = "4\nI G 167\nI E 158\nG E 45\nI N 17".to_string();
 
         assert_eq!(Err("Nodes in edges should be present in node list. N not found.".to_string()), construct_graph_from_edges(&graph_nodes, &edge_data))
+    }
+    #[rstest]
+    fn test_parsing_data_from_incorrect_format() {
+        let incorrect_contents : String = "incorrectly formatted input".to_string();
+        assert_eq!(Err("Invalid file format.".to_string()), read_input(incorrect_contents));
+        let contents_no_routes : String = "2\nA\nB\n\n1\nA B 1".to_string();
+        assert_eq!(Err("Invalid file format.".to_string()), read_input(contents_no_routes));
+        let contents_wrong_delimiters_edge = "3\nI\nG\nE\n\n4\nI G 167\nI E 158\nG,E,45\nI G 17\n\nG E\nE I\n\n".to_string();
+        assert_eq!(Err("Invalid file format.".to_string()), read_input(contents_wrong_delimiters_edge)); 
+        let contents_wrong_delimiters_route = "3\nI\nG\nE\n\n4\nI G 167\nI E 158\nG E 45\nI G 17\n\nG,E\nE I\n\n".to_string();
+        assert_eq!(Err("Invalid file format.".to_string()), read_input(contents_wrong_delimiters_route)); 
     }
 }
