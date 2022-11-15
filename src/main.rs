@@ -1,9 +1,9 @@
-use core::cmp::min;
-use std::collections::BTreeMap;
-use std::fs;
-use std::env;
 use assert_cmd::prelude::*; // Add methods on commands
+use core::cmp::min;
 use predicates::prelude::*; // Used for writing assertions
+use std::collections::BTreeMap;
+use std::env;
+use std::fs;
 use std::process::Command; // Run programs
 include!("construct_graph.rs");
 
@@ -14,10 +14,14 @@ struct Node {
     dist_to_node: usize,
 }
 
-fn get_route_travelled(original_start_idx: usize, end_idx: usize, parents_of_nodes_visited: Vec<usize>) -> Vec<usize> {
+fn get_route_travelled(
+    original_start_idx: usize,
+    end_idx: usize,
+    parents_of_nodes_visited: Vec<usize>,
+) -> Vec<usize> {
     //go backwards through the nodes to find the parent node.
     let mut idx = end_idx;
-    let mut nodes_in_order : Vec<usize> = Vec::new();
+    let mut nodes_in_order: Vec<usize> = Vec::new();
     nodes_in_order.push(end_idx);
     while idx != original_start_idx {
         idx = parents_of_nodes_visited[idx];
@@ -29,32 +33,33 @@ fn get_route_travelled(original_start_idx: usize, end_idx: usize, parents_of_nod
         println!("nodes: {:?}", nodes_in_order);
     }
 
-    return nodes_in_order
+    return nodes_in_order;
 }
 
-fn get_human_readable_route(nodes_in_order: Vec<usize>, graph_nodes: Vec<GraphNode>) -> Result<Vec<String>, String> {
-
-    let mut path_travelled : Vec<String> = Vec::new();
+fn get_human_readable_route(
+    nodes_in_order: Vec<usize>,
+    graph_nodes: &Vec<GraphNode>,
+) -> Result<Vec<String>, String> {
+    let mut path_travelled: Vec<String> = Vec::new();
     for node_idx in nodes_in_order {
-        let node  = &graph_nodes[node_idx];
+        let node = &graph_nodes[node_idx];
 
         if node.index != node_idx {
             return Err("Error in the indexing for the route travelled.".to_string());
-        }
-        else {
+        } else {
             path_travelled.push(node.node_name.to_string());
         }
     }
-    return Ok(path_travelled)
+    return Ok(path_travelled);
 }
 
 fn print_route(route: Vec<String>) -> String {
-    let mut final_path : String = route[0].to_string();
+    let mut final_path: String = route[0].to_string();
     for i in 1..route.len() {
         final_path = format!("{}->{}", final_path, route[i]);
     }
 
-    return final_path
+    return final_path;
 }
 
 fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<usize>) {
@@ -122,7 +127,6 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<
             nodes_visited.push(closest_node.index);
             parents_of_nodes_visited[closest_node.index] = closest_node.parent_idx;
         }
-
     }
 
     let nodes_in_order = get_route_travelled(original_start_idx, end_idx, parents_of_nodes_visited);
@@ -133,41 +137,58 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<
 fn main() -> Result<(), String> {
     // read input
     let args: Vec<String> = env::args().collect();
-    //dbg!(args); //todo: use dbg! rather than cfg 
     if args.len() != 2 {
-        return Err("Please provide relative file path as input arg, i.e. `$ cargo run <src/test/uk.txt>`".to_string());
+        return Err(
+            "Please provide relative file path as input arg, i.e. `$ cargo run <src/test/uk.txt>`"
+                .to_string(),
+        );
     }
     let filename = &args[1];
-    let contents = fs::read_to_string(filename.to_string()).expect("Should have been able to read the file");
+    let contents =
+        fs::read_to_string(filename.to_string()).expect("Should have been able to read the file");
     let data = read_input(contents);
     if let Err(e) = data {
-        return Err(format!("Graph construction failed due to {e}", e=e));
+        return Err(format!("Graph construction failed due to {e}", e = e));
     }
     let (node_data, edge_data, routes_to_find) = data.unwrap();
     let graph_nodes: Vec<GraphNode> = get_nodes(&node_data);
     let graph_result = construct_graph_from_edges(&graph_nodes, &edge_data);
     if let Err(e) = graph_result {
-        return Err(format!("Graph construction failed due to {e}", e=e));
+        return Err(format!("Graph construction failed due to {e}", e = e));
     }
     let graph = graph_result.unwrap();
     if cfg!(debug_assertions) {
         println!("graph: {:?}", graph);
     }
-    let route_result = get_route(&routes_to_find, &graph_nodes);
-    if let Err(e) = route_result {
-        return Err(format!("Graph construction failed due to incorrect route; {e}", e=e));
+    let routes: Vec<&str> = routes_to_find.trim().split("\n").collect();
+    for route in routes {
+        let route_names : Vec<&str> = route.split(" ").collect();
+        let route_result = get_route(route_names, &graph_nodes);
+        if let Err(e) = route_result {
+            return Err(format!(
+                "Program failed due to incorrect route; {e}",
+                e = e
+            ));
+        }
+        let (start_idx, end_idx) = route_result.unwrap();
+        if cfg!(debug_assertions) {
+            println!("finding route from {} to {}", start_idx, end_idx);
+        }
+        let (dist, route) = dijkstra(start_idx, end_idx, &graph);
+        let human_readable_route = get_human_readable_route(route, &graph_nodes);
+        if let Err(e) = human_readable_route {
+            return Err(format!(
+                "Something went wrong with indexing the nodes. {e}",
+                e = e
+            ));
+        }
+        println!(
+            "Route travelled: {}",
+            print_route(human_readable_route.unwrap())
+        );
+        println!("Dist: {}", dist);
     }
-    let (start_idx, end_idx) = route_result.unwrap();
-    if cfg!(debug_assertions) {
-        println!("finding route from {} to {}", start_idx, end_idx);
-    }
-    let (dist, route) = dijkstra(start_idx, end_idx, &graph);
-    let human_readable_route = get_human_readable_route(route, graph_nodes);
-    if let Err(e) = human_readable_route {
-        return Err(format!("Something went wrong with indexing the nodes. {e}", e=e));
-    }
-    println!("Route travelled: {}", print_route(human_readable_route.unwrap()));
-    println!("Dist: {}", dist);
+    
     //todo: find all routes; do in parallel - look at threading
     Ok(())
 }
@@ -302,15 +323,14 @@ mod tests {
 
         let (dist, _) = dijkstra(start_idx, end_idx, &graph);
         assert_eq!(dist, 5);
-    }   
+    }
     #[test]
     fn find_correct_route_in_file() -> Result<(), Box<dyn std::error::Error>> {
-        
         let mut cmd = Command::cargo_bin("rust_dijkstra")?;
         cmd.arg("src/test/uk.txt".to_string());
-        cmd.assert()
-            .success()
-            .stdout(predicate::str::contains("Route travelled: Glasgow->Edinburgh\nDist: 45\n"));
+        cmd.assert().success().stdout(predicate::str::contains(
+            "Route travelled: Glasgow->Edinburgh\nDist: 45\n",
+        ));
 
         Ok(())
         //todo test more complex routes than this.
@@ -321,9 +341,9 @@ mod tests {
         //unimplemented
         let mut cmd = Command::cargo_bin("rust_dijkstra")?;
         cmd.arg("src/test/edge-cases.txt".to_string());
-        cmd.assert()
-            .success()
-            .stdout(predicate::str::contains("Route is self referential. Dist from SelfReferential to SelfReferential = 0"));
+        cmd.assert().success().stdout(predicate::str::contains(
+            "Route is self referential. Dist from SelfReferential to SelfReferential = 0",
+        ));
 
         Ok(())
         // todo, once the routes are parallelised, can use the edge-cases.txt to check for disconnected paths

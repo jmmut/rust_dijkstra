@@ -164,16 +164,13 @@ fn read_input(contents: String) -> Result<(String, String, String), String> {
     return Ok((node_data, edge_data, routes_to_find));
 }
 
-fn get_route(routes_to_find: &str, graph_nodes: &Vec<GraphNode>) -> Result<(usize, usize), String> {
-    let routes: Vec<&str> = routes_to_find.split("\n").collect();
-    let first_route: Vec<&str> = routes[0].split(" ").collect(); //todo: other routes
+fn get_route(first_route: Vec<&str>, graph_nodes: &Vec<GraphNode>) -> Result<(usize, usize), String> {
+    
     if first_route.len() != 2 {
         return Err(format!("Route {route:?} is invalid. Please check the input.", route=first_route));
     }
     let start_str = first_route[0];
     let end_str = first_route[1];
-
-    let number_of_nodes = graph_nodes.len();
 
     // todo: remove repeated logic for node-name matching
     let start_node = graph_nodes.iter().find(|&x| x.node_name == start_str);
@@ -274,7 +271,6 @@ mod graph_only_tests {
     }
     #[test]
     fn test_route_extraction() {
-        let input_line = "Glasgow Edinburgh\nEdinburgh Inverness";
         let graph_nodes = vec![
             GraphNode {
                 index: 0,
@@ -290,7 +286,7 @@ mod graph_only_tests {
             }
         ];
 
-        let (start_idx, end_idx) = get_route(input_line, &graph_nodes).expect("");
+        let (start_idx, end_idx) = get_route(vec!["Glasgow","Edinburgh"], &graph_nodes).expect("");
         assert_eq!(start_idx, 1);
         assert_eq!(end_idx, 2);
     }
