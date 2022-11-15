@@ -62,7 +62,11 @@ fn print_route(route: Vec<String>) -> String {
     return final_path;
 }
 
-fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<usize>) {
+fn dijkstra(
+    mut start_idx: usize,
+    end_idx: usize,
+    graph: &Graph,
+) -> Result<(usize, Vec<usize>), String> {
     let original_start_idx = start_idx;
     let number_of_nodes = graph.number_of_nodes;
 
@@ -106,6 +110,9 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<
                 );
             }
         }
+        if nodes_can_visit.is_empty() {
+            return Err("No path found".to_string());
+        }
         if cfg!(debug_assertions) {
             println!("nodes can visit: {:?}", nodes_can_visit);
         }
@@ -131,7 +138,44 @@ fn dijkstra(mut start_idx: usize, end_idx: usize, graph: &Graph) -> (usize, Vec<
 
     let nodes_in_order = get_route_travelled(original_start_idx, end_idx, parents_of_nodes_visited);
 
-    return (dist[end_idx], nodes_in_order);
+    return Ok((dist[end_idx], nodes_in_order));
+}
+
+fn get_human_readable_solution(
+    route: &str,
+    graph_nodes: &Vec<GraphNode>,
+    graph: &Graph,
+) -> Result<String, String> {
+    let route_names: Vec<&str> = route.split(" ").collect();
+    let route_result = get_route(route_names, &graph_nodes);
+    if let Err(e) = route_result {
+        return Err(format!("Program failed due to incorrect route; {e}", e = e));
+    }
+    let (start_idx, end_idx) = route_result.unwrap();
+    if cfg!(debug_assertions) {
+        println!("finding route from {} to {}", start_idx, end_idx);
+    }
+    let result = dijkstra(start_idx, end_idx, &graph);
+    if let Err(e) = result {
+        return Err(format!(
+            "No route found. Are the start and end disconnected? {e}",
+            e = e
+        ));
+    }
+    let (dist, route) = result.unwrap();
+    let human_readable_route = get_human_readable_route(route, &graph_nodes);
+    if let Err(e) = human_readable_route {
+        return Err(format!(
+            "Something went wrong with indexing the nodes. {e}",
+            e = e
+        ));
+    }
+    let result = print_route(human_readable_route.unwrap());
+
+    return Ok(format!(
+        "Route travelled: {}, with distance {}",
+        result, dist
+    ));
 }
 
 fn main() -> Result<(), String> {
@@ -162,34 +206,14 @@ fn main() -> Result<(), String> {
     }
     let routes: Vec<&str> = routes_to_find.trim().split("\n").collect();
     for route in routes {
-        let route_names : Vec<&str> = route.split(" ").collect();
-        let route_result = get_route(route_names, &graph_nodes);
-        if let Err(e) = route_result {
-            return Err(format!(
-                "Program failed due to incorrect route; {e}",
-                e = e
-            ));
+        // todo: parallelise this &learn how to do threading in rust, for loop is slower
+        let result = get_human_readable_solution(route, &graph_nodes, &graph);
+        match result {
+            Err(err) => println!("An error occured on the path {}. Error: {}", route, err),
+            Ok(_) => println!("{}", result.unwrap())
         }
-        let (start_idx, end_idx) = route_result.unwrap();
-        if cfg!(debug_assertions) {
-            println!("finding route from {} to {}", start_idx, end_idx);
-        }
-        let (dist, route) = dijkstra(start_idx, end_idx, &graph);
-        let human_readable_route = get_human_readable_route(route, &graph_nodes);
-        if let Err(e) = human_readable_route {
-            return Err(format!(
-                "Something went wrong with indexing the nodes. {e}",
-                e = e
-            ));
-        }
-        println!(
-            "Route travelled: {}",
-            print_route(human_readable_route.unwrap())
-        );
-        println!("Dist: {}", dist);
     }
-    
-    //todo: find all routes; do in parallel - look at threading
+
     Ok(())
 }
 
@@ -224,7 +248,7 @@ mod tests {
             edges: vec![edges_from_start, edges_from_middle, edges_from_end],
         };
 
-        let (dist, _) = dijkstra(start_idx, end_idx, &graph);
+        let (dist, _) = dijkstra(start_idx, end_idx, &graph).unwrap();
         assert_eq!(dist, 5);
     }
     #[test]
@@ -261,7 +285,7 @@ mod tests {
             edges: vec![edges_from_start, edges_from_middle, edges_from_end],
         };
 
-        let (dist, _) = dijkstra(start_idx, end_idx, &graph);
+        let (dist, _) = dijkstra(start_idx, end_idx, &graph).unwrap();
         assert_eq!(dist, 5);
     }
     #[test]
@@ -300,7 +324,7 @@ mod tests {
             ],
         };
         assert_eq!(expected_graph, graph);
-        let (dist, _) = dijkstra(0, 2, &graph);
+        let (dist, _) = dijkstra(0, 2, &graph).unwrap();
         assert_eq!(dist, 4);
     }
     #[test]
@@ -321,7 +345,7 @@ mod tests {
             edges: vec![edges_from_start, edges_from_middle],
         };
 
-        let (dist, _) = dijkstra(start_idx, end_idx, &graph);
+        let (dist, _) = dijkstra(start_idx, end_idx, &graph).unwrap();
         assert_eq!(dist, 5);
     }
     #[test]
@@ -329,7 +353,7 @@ mod tests {
         let mut cmd = Command::cargo_bin("rust_dijkstra")?;
         cmd.arg("src/test/uk.txt".to_string());
         cmd.assert().success().stdout(predicate::str::contains(
-            "Route travelled: Glasgow->Edinburgh\nDist: 45\n",
+            "Route travelled: Glasgow->Edinburgh, with distance 45\n",
         ));
 
         Ok(())
@@ -344,8 +368,17 @@ mod tests {
         cmd.assert().success().stdout(predicate::str::contains(
             "Route is self referential. Dist from SelfReferential to SelfReferential = 0",
         ));
-
         Ok(())
-        // todo, once the routes are parallelised, can use the edge-cases.txt to check for disconnected paths
+    }
+    #[test]
+    fn find_disconnected_route_in_file() -> Result<(), Box<dyn std::error::Error>> {
+        //unimplemented
+        let mut cmd = Command::cargo_bin("rust_dijkstra")?;
+        cmd.arg("src/test/edge-cases.txt".to_string());
+
+        cmd.assert().success().stdout(predicate::str::contains(
+            "Are the start and end disconnected? No path found",
+        ));
+        Ok(())
     }
 }

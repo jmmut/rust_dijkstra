@@ -113,8 +113,11 @@ pub fn construct_graph_from_edges(graph_nodes: &Vec<GraphNode>, edge_data: &str)
             return Err(e)
         }
         let (start_index, end_index, weight) = edge_result.unwrap();
+        if start_index == end_index {
+            // self referential edge, discard
+            continue;
+        }
         let (new_edge, new_edge_reverse) = create_new_edges(start_index, end_index, weight);
-
         // todo: make this not dumb
         remove_existing_edges_if_shorter_are_found(&mut graph, &new_edge, &new_edge_reverse);
         graph.edges[start_index].push(new_edge);
@@ -171,7 +174,9 @@ fn get_route(first_route: Vec<&str>, graph_nodes: &Vec<GraphNode>) -> Result<(us
     }
     let start_str = first_route[0];
     let end_str = first_route[1];
-
+    if start_str == end_str {
+        return Err(format!("Route is self referential. Dist from {} to {} = 0", start_str, end_str));
+    }
     // todo: remove repeated logic for node-name matching
     let start_node = graph_nodes.iter().find(|&x| x.node_name == start_str);
     if start_node == None {
