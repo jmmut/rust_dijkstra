@@ -74,6 +74,28 @@ fn reverse_sort(nodes_can_visit: &BTreeMap<usize, Node>) -> usize {
     return index_to_remove;
 }
 
+
+fn add_to_frontier(nodes_can_visit: &mut BTreeMap<usize, Node>, nodes_visited: &Vec<Node>, edge_to_add: &Edge, start_idx: usize){
+    if nodes_can_visit.contains_key(&edge_to_add.index_second) {
+        nodes_can_visit
+            .entry(edge_to_add.index_second)
+            .and_modify(|curr_node| {
+                curr_node.dist_to_node =
+                    min(edge_to_add.weight + nodes_visited[start_idx].dist_to_node, curr_node.dist_to_node)
+            });
+    } else if (None == nodes_visited.iter().find(|&x| x.index == edge_to_add.index_second)) && edge_to_add.index_second != start_idx {
+        // if not present, and we haven't visited the node
+        nodes_can_visit.insert(
+            edge_to_add.index_second,
+            Node {
+                index: edge_to_add.index_second,
+                parent_idx: start_idx,
+                dist_to_node: edge_to_add.weight,
+            },
+        );
+    }
+}
+
 fn dijkstra(
     mut start_idx: usize,
     end_idx: usize,
@@ -94,27 +116,8 @@ fn dijkstra(
 
     while start_idx != end_idx {
 
-        // which nodes can we visit
-        for i in &graph.edges[start_idx] {
-            // if present, minimise weight
-            if nodes_can_visit.contains_key(&i.index_second) {
-                nodes_can_visit
-                    .entry(i.index_second)
-                    .and_modify(|curr_node| {
-                        curr_node.dist_to_node =
-                            min(i.weight + nodes_visited[start_idx].dist_to_node, curr_node.dist_to_node)
-                    });
-            } else if (None == nodes_visited.iter().find(|&x| x.index == i.index_second)) && i.index_second != start_idx {
-                // if not present, and we haven't visited the node
-                nodes_can_visit.insert(
-                    i.index_second.clone(),
-                    Node {
-                        index: i.index_second.clone(),
-                        parent_idx: start_idx,
-                        dist_to_node: i.weight.clone(),
-                    },
-                );
-            }
+        for edge in &graph.edges[start_idx] {
+            add_to_frontier(&mut nodes_can_visit,&nodes_visited, edge, start_idx);
         }
         if nodes_can_visit.is_empty() {
             return Err("Are the start and end disconnected? No path found".to_string());
@@ -131,7 +134,6 @@ fn dijkstra(
 
         }
     }
-
     let nodes_in_order = get_route_travelled(original_start_idx, end_idx, &nodes_visited);
 
     return Ok((nodes_visited[end_idx].dist_to_node, nodes_in_order));
