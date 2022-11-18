@@ -18,14 +18,14 @@ struct Node {
 fn get_route_travelled(
     original_start_idx: usize,
     end_idx: usize,
-    parents_of_nodes_visited: Vec<usize>,
+    nodes_visited: &Vec<Node>,
 ) -> Vec<usize> {
     //go backwards through the nodes to find the parent node.
     let mut idx = end_idx;
     let mut nodes_in_order: Vec<usize> = Vec::new();
     nodes_in_order.push(end_idx);
     while idx != original_start_idx {
-        idx = parents_of_nodes_visited[idx];
+        idx = nodes_visited[idx].parent_idx;
         nodes_in_order.push(idx);
     }
 
@@ -67,25 +67,19 @@ fn dijkstra(
     graph: &Graph,
 ) -> Result<(usize, Vec<usize>), String> {
     let original_start_idx = start_idx;
-    let number_of_nodes = graph.number_of_nodes;
+    let mut parent_idx = start_idx;
 
-    let mut dist = Vec::new();
+    let number_of_nodes = graph.number_of_nodes;
+    //todo: use a binary search tree here to avoid needing to allocate space for the whole vector.
+    let mut nodes_visited: Vec<Node> = Vec::with_capacity(number_of_nodes);
     for _ in 0..number_of_nodes {
-        dist.push(INFINITE_DIST);
+        nodes_visited.push(Node{index: INFINITE_DIST, parent_idx: INFINITE_DIST, dist_to_node: 0});
     }
+    nodes_visited[start_idx] = Node {index: start_idx, parent_idx, dist_to_node: 0};
 
     let mut nodes_can_visit: BTreeMap<usize, Node> = BTreeMap::new();
-    let mut nodes_visited: Vec<usize> = Vec::new();
-    // for now, store the parents in a separate vector, with the idx being the idx of the child.
-    // todo; store the node rather than two separate vectors
-    let mut parents_of_nodes_visited: Vec<usize> = Vec::with_capacity(number_of_nodes);
-    for _ in 0..number_of_nodes {
-        parents_of_nodes_visited.push(INFINITE_DIST);
-    }
 
-    dist[start_idx] = 0;
     while start_idx != end_idx {
-        nodes_visited.push(start_idx);
 
         // which nodes can we visit
         for i in &graph.edges[start_idx] {
@@ -95,9 +89,9 @@ fn dijkstra(
                     .entry(i.index_second)
                     .and_modify(|curr_node| {
                         curr_node.dist_to_node =
-                            min(i.weight + dist[start_idx], curr_node.dist_to_node)
+                            min(i.weight + nodes_visited[start_idx].dist_to_node, curr_node.dist_to_node)
                     });
-            } else if !nodes_visited.contains(&i.index_second) && i.index_second != start_idx {
+            } else if (None == nodes_visited.iter().find(|&x| x.index == i.index_second)) && i.index_second != start_idx {
                 // if not present, and we haven't visited the node
                 nodes_can_visit.insert(
                     i.index_second.clone(),
@@ -125,17 +119,17 @@ fn dijkstra(
         }
         let closest_node = nodes_can_visit.remove(&idx).ok_or("Error in path finding".to_string())?;
 
-        if (closest_node.index != start_idx) && (!nodes_visited.contains(&closest_node.index)) {
-            dist[closest_node.index] = dist[closest_node.parent_idx] + closest_node.dist_to_node;
+        if (closest_node.index != start_idx) && (None == nodes_visited.iter().find(|&x| x.index == closest_node.index)) {
             start_idx = closest_node.index;
-            nodes_visited.push(closest_node.index);
-            parents_of_nodes_visited[closest_node.index] = closest_node.parent_idx;
+            parent_idx = closest_node.parent_idx;
+            nodes_visited[start_idx] = Node{index: start_idx, parent_idx, dist_to_node: nodes_visited[parent_idx].dist_to_node + closest_node.dist_to_node};
+
         }
     }
 
-    let nodes_in_order = get_route_travelled(original_start_idx, end_idx, parents_of_nodes_visited);
+    let nodes_in_order = get_route_travelled(original_start_idx, end_idx, &nodes_visited);
 
-    return Ok((dist[end_idx], nodes_in_order));
+    return Ok((nodes_visited[end_idx].dist_to_node, nodes_in_order));
 }
 
 fn get_human_readable_solution(
