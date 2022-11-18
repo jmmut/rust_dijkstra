@@ -61,6 +61,19 @@ fn print_route(route: Vec<String>) -> String {
     return final_path;
 }
 
+
+fn reverse_sort(nodes_can_visit: &BTreeMap<usize, Node>) -> usize {
+    let mut min_weight = INFINITE_DIST;
+    let mut index_to_remove = INFINITE_DIST;
+    for (_, node) in nodes_can_visit {
+        if node.dist_to_node < min_weight {
+            min_weight = node.dist_to_node;
+            index_to_remove = node.index;
+        }
+    }
+    return index_to_remove;
+}
+
 fn dijkstra(
     mut start_idx: usize,
     end_idx: usize,
@@ -108,16 +121,8 @@ fn dijkstra(
         }
         debug!("nodes can visit: {:?}", nodes_can_visit);
 
-        // reverse sort
-        let mut min_weight = INFINITE_DIST;
-        let mut idx = INFINITE_DIST;
-        for (i, node) in &nodes_can_visit {
-            if node.dist_to_node < min_weight {
-                min_weight = node.dist_to_node;
-                idx = node.index;
-            }
-        }
-        let closest_node = nodes_can_visit.remove(&idx).ok_or("Error in path finding".to_string())?;
+        let index_to_remove = reverse_sort(&nodes_can_visit);
+        let closest_node = nodes_can_visit.remove(&index_to_remove).ok_or("Error in path finding".to_string())?;
 
         if (closest_node.index != start_idx) && (None == nodes_visited.iter().find(|&x| x.index == closest_node.index)) {
             start_idx = closest_node.index;
