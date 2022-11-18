@@ -28,18 +28,9 @@ fn get_edge_info(edge: &str, graph_nodes: &Vec<GraphNode>) -> Result<(usize, usi
     let start_edge = edge_info[0];
     let end_edge = edge_info[1];
     let edge_weight = edge_info[2].parse::<usize>().expect(&format!("Distance between edges should be an integer, {edge_weight} found.", edge_weight=edge_info[2]));
-    // todo: reove repetition
-    let start_node = graph_nodes.iter().find(|&x| x.node_name == start_edge);
-    if start_node == None {
-        return Err(format!("Nodes in edges should be present in node list. {start_edge} not found.", start_edge=start_edge));
-    }
-    let start_index = start_node.expect("").index;
 
-    let end_node = graph_nodes.iter().find(|&x| x.node_name == end_edge);
-    if end_node == None {
-        return Err(format!("Nodes in edges should be present in node list. {end_edge} not found.", end_edge=end_edge));
-    }
-    let end_index = end_node.expect("").index;
+    let start_index = get_node_index_from_node_name(start_edge.to_string(), graph_nodes)?;
+    let end_index = get_node_index_from_node_name(end_edge.to_string(), graph_nodes)?;
 
     return Ok((start_index, end_index, edge_weight))
 }
@@ -147,6 +138,14 @@ fn get_nodes(node_data: &str) -> Vec<GraphNode> {
     return graph_nodes;
 }
 
+fn get_node_index_from_node_name(node_name: String, graph_nodes: &Vec<GraphNode>) -> Result<usize, String> {
+    let graph_node = graph_nodes.iter().find(|&x| x.node_name == node_name);
+    match graph_node {
+        None => return Err(format!("Nodes in edges should be present in node list. {} not found.", node_name)),
+        Some(node) => return Ok(node.index)
+    }
+}
+
 fn read_input(contents: String) -> Result<(String, String, String), String> {
 
     let data: Vec<&str> = contents.split("\n\n").collect();
@@ -170,18 +169,10 @@ fn get_route(first_route: Vec<&str>, graph_nodes: &Vec<GraphNode>) -> Result<(us
     if start_str == end_str {
         return Err(format!("Route is self referential. Dist from {} to {} = 0", start_str, end_str));
     }
-    // todo: remove repeated logic for node-name matching
-    let start_node = graph_nodes.iter().find(|&x| x.node_name == start_str);
-    if start_node == None {
-        return Err(format!("Nodes in edges should be present in node list. {start_edge} not found.", start_edge=start_str));
-    }
-    let start_idx = start_node.unwrap().index;
 
-    let end_node = graph_nodes.iter().find(|&x| x.node_name == end_str);
-    if end_node == None {
-        return Err(format!("Nodes in edges should be present in node list. {end_edge} not found.", end_edge=end_str));
-    }
-    let end_idx = end_node.unwrap().index;
+    let start_idx = get_node_index_from_node_name(start_str.to_string(), graph_nodes)?;
+    let end_idx = get_node_index_from_node_name(end_str.to_string(), graph_nodes)?;
+
     return Ok((start_idx, end_idx));
 }
 
