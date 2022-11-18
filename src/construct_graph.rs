@@ -131,9 +131,7 @@ fn get_nodes(node_data: &str) -> Vec<GraphNode> {
         });
     }
 
-    if cfg!(debug_assertions) {
-        println!("graph nodes: {:?}", graph_nodes);
-    }
+    debug!("graph nodes: {:?}", graph_nodes);
 
     return graph_nodes;
 }

@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::process::Command; // Run programs
+use log::{info, debug};
 include!("construct_graph.rs");
 
 #[derive(Debug, Clone, PartialEq)]
@@ -29,9 +30,7 @@ fn get_route_travelled(
     }
 
     nodes_in_order.reverse();
-    if cfg!(debug_assertions) {
-        println!("nodes: {:?}", nodes_in_order);
-    }
+    debug!("Nodes in order: {:?}", &nodes_in_order);
 
     return nodes_in_order;
 }
@@ -113,9 +112,7 @@ fn dijkstra(
         if nodes_can_visit.is_empty() {
             return Err("Are the start and end disconnected? No path found".to_string());
         }
-        if cfg!(debug_assertions) {
-            println!("nodes can visit: {:?}", nodes_can_visit);
-        }
+        debug!("nodes can visit: {:?}", nodes_can_visit);
 
         // reverse sort
         let mut min_weight = INFINITE_DIST;
@@ -149,11 +146,9 @@ fn get_human_readable_solution(
     let route_names: Vec<&str> = route.split(" ").collect();
     let route_result = get_route(route_names, &graph_nodes)?;
     let (start_idx, end_idx) = route_result;
-    if cfg!(debug_assertions) {
-        println!("finding route from {} to {}", start_idx, end_idx);
-    }
-    let result = dijkstra(start_idx, end_idx, &graph)?;
-    let (dist, route) = result;
+    debug!("finding route from {} to {}", start_idx, end_idx);
+
+    let (dist, route) = dijkstra(start_idx, end_idx, &graph)?;
     let human_readable_route = get_human_readable_route(route, &graph_nodes)?;
     let result = print_route(human_readable_route);
 
@@ -164,6 +159,7 @@ fn get_human_readable_solution(
 }
 
 fn main() -> Result<(), String> {
+    env_logger::init();
     // read input
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
@@ -179,9 +175,8 @@ fn main() -> Result<(), String> {
     let graph_nodes: Vec<GraphNode> = get_nodes(&node_data);
     let graph = construct_graph_from_edges(&graph_nodes, &edge_data)?;
 
-    if cfg!(debug_assertions) {
-        println!("graph: {:?}", graph);
-    }
+    debug!("graph: {:?}", graph);
+
     let routes: Vec<&str> = routes_to_find.trim().split("\n").collect();
     for route in routes {
         // todo: parallelise this &learn how to do threading in rust, for loop is slower
