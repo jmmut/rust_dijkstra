@@ -111,7 +111,7 @@ fn dijkstra(
             }
         }
         if nodes_can_visit.is_empty() {
-            return Err("No path found".to_string());
+            return Err("Are the start and end disconnected? No path found".to_string());
         }
         if cfg!(debug_assertions) {
             println!("nodes can visit: {:?}", nodes_can_visit);
@@ -126,7 +126,7 @@ fn dijkstra(
                 idx = node.index;
             }
         }
-        let closest_node = nodes_can_visit.remove(&idx).unwrap();
+        let closest_node = nodes_can_visit.remove(&idx).ok_or("Error in path finding".to_string())?;
 
         if (closest_node.index != start_idx) && (!nodes_visited.contains(&closest_node.index)) {
             dist[closest_node.index] = dist[closest_node.parent_idx] + closest_node.dist_to_node;
@@ -147,30 +147,15 @@ fn get_human_readable_solution(
     graph: &Graph,
 ) -> Result<String, String> {
     let route_names: Vec<&str> = route.split(" ").collect();
-    let route_result = get_route(route_names, &graph_nodes);
-    if let Err(e) = route_result {
-        return Err(format!("Program failed due to incorrect route; {e}", e = e));
-    }
-    let (start_idx, end_idx) = route_result.unwrap();
+    let route_result = get_route(route_names, &graph_nodes)?;
+    let (start_idx, end_idx) = route_result;
     if cfg!(debug_assertions) {
         println!("finding route from {} to {}", start_idx, end_idx);
     }
-    let result = dijkstra(start_idx, end_idx, &graph);
-    if let Err(e) = result {
-        return Err(format!(
-            "No route found. Are the start and end disconnected? {e}",
-            e = e
-        ));
-    }
-    let (dist, route) = result.unwrap();
-    let human_readable_route = get_human_readable_route(route, &graph_nodes);
-    if let Err(e) = human_readable_route {
-        return Err(format!(
-            "Something went wrong with indexing the nodes. {e}",
-            e = e
-        ));
-    }
-    let result = print_route(human_readable_route.unwrap());
+    let result = dijkstra(start_idx, end_idx, &graph)?;
+    let (dist, route) = result;
+    let human_readable_route = get_human_readable_route(route, &graph_nodes)?;
+    let result = print_route(human_readable_route);
 
     return Ok(format!(
         "Route travelled: {}, with distance {}",
@@ -190,17 +175,10 @@ fn main() -> Result<(), String> {
     let filename = &args[1];
     let contents =
         fs::read_to_string(filename.to_string()).expect("Should have been able to read the file");
-    let data = read_input(contents);
-    if let Err(e) = data {
-        return Err(format!("Graph construction failed due to {e}", e = e));
-    }
-    let (node_data, edge_data, routes_to_find) = data.unwrap();
+    let (node_data, edge_data, routes_to_find) = read_input(contents)?;
     let graph_nodes: Vec<GraphNode> = get_nodes(&node_data);
-    let graph_result = construct_graph_from_edges(&graph_nodes, &edge_data);
-    if let Err(e) = graph_result {
-        return Err(format!("Graph construction failed due to {e}", e = e));
-    }
-    let graph = graph_result.unwrap();
+    let graph = construct_graph_from_edges(&graph_nodes, &edge_data)?;
+
     if cfg!(debug_assertions) {
         println!("graph: {:?}", graph);
     }

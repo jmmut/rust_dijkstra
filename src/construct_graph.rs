@@ -57,18 +57,15 @@ fn create_new_edges(start_index: usize, end_index: usize, weight: usize) -> (Edg
     return (new_edge, new_edge_reverse)
 }
 
-fn update_existing_edge(graph: &mut Graph, start_index: usize, end_index: usize) -> usize {
+fn update_existing_edge(graph: &mut Graph, start_index: usize, end_index: usize) -> Option<usize> {
 
-    let edge_index_opt : Option<usize> = graph.edges[start_index].iter().position(|x| x.index_second == end_index);
-    if None == edge_index_opt {
-        return INFINITE_DIST;
-    }
-    let edge_index = edge_index_opt.unwrap();
+    let edge_index = graph.edges[start_index].iter().position(|x| x.index_second == end_index)?;
+
     let old_edge_weight = graph.edges[start_index][edge_index].weight;
     if old_edge_weight != INFINITE_DIST {
         graph.edges[start_index].remove(edge_index);
     }
-    return old_edge_weight;
+    return Some(old_edge_weight);
 
 }
 
@@ -77,7 +74,7 @@ fn remove_existing_edges_if_shorter_are_found(graph: &mut Graph, new_edge: &Edge
     let start_index = new_edge_reverse.index_second;
     let end_index = new_edge.index_second;
     let old_edge_weight = update_existing_edge(graph, start_index, end_index);
-    if old_edge_weight >= new_edge.weight {
+    if old_edge_weight >= Some(new_edge.weight) {
         update_existing_edge(graph, end_index, start_index);
     }
 
@@ -108,11 +105,7 @@ pub fn construct_graph_from_edges(graph_nodes: &Vec<GraphNode>, edge_data: &str)
 
     for i in 1..(num_edges + 1) {
 
-        let edge_result = get_edge_info(edges[i], graph_nodes);
-        if let Err(e) = edge_result {
-            return Err(e)
-        }
-        let (start_index, end_index, weight) = edge_result.unwrap();
+        let (start_index, end_index, weight) = get_edge_info(edges[i], graph_nodes)?;
         if start_index == end_index {
             // self referential edge, discard
             continue;
@@ -168,7 +161,7 @@ fn read_input(contents: String) -> Result<(String, String, String), String> {
 }
 
 fn get_route(first_route: Vec<&str>, graph_nodes: &Vec<GraphNode>) -> Result<(usize, usize), String> {
-    
+
     if first_route.len() != 2 {
         return Err(format!("Route {route:?} is invalid. Please check the input.", route=first_route));
     }
@@ -316,8 +309,8 @@ mod graph_only_tests {
         let contents_no_routes : String = "2\nA\nB\n\n1\nA B 1".to_string();
         assert_eq!(Err("Invalid file format.".to_string()), read_input(contents_no_routes));
         let contents_wrong_delimiters_edge = "3\nI\nG\nE\n\n4\nI G 167\nI E 158\nG,E,45\nI G 17\n\nG E\nE I\n\n".to_string();
-        assert_eq!(Err("Invalid file format.".to_string()), read_input(contents_wrong_delimiters_edge)); 
+        assert_eq!(Err("Invalid file format.".to_string()), read_input(contents_wrong_delimiters_edge));
         let contents_wrong_delimiters_route = "3\nI\nG\nE\n\n4\nI G 167\nI E 158\nG E 45\nI G 17\n\nG,E\nE I\n\n".to_string();
-        assert_eq!(Err("Invalid file format.".to_string()), read_input(contents_wrong_delimiters_route)); 
+        assert_eq!(Err("Invalid file format.".to_string()), read_input(contents_wrong_delimiters_route));
     }
 }
