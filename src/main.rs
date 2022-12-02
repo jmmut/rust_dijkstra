@@ -15,6 +15,7 @@ fn main() -> Result<(), String> {
                 .to_string(),
         );
     }
+
     let filename = &args[1];
     let contents =
         fs::read_to_string(filename.to_string()).expect("Should have been able to read the file");

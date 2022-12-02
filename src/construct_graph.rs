@@ -48,26 +48,33 @@ fn create_new_edges(start_index: usize, end_index: usize, weight: usize) -> (Edg
     return (new_edge, new_edge_reverse)
 }
 
-fn update_existing_edge(graph: &mut Graph, start_index: usize, end_index: usize) -> Option<usize> {
-
-    let edge_index = graph.edges[start_index].iter().position(|x| x.index_second == end_index)?;
-
-    let old_edge_weight = graph.edges[start_index][edge_index].weight;
-    if old_edge_weight != INFINITE_DIST {
-        graph.edges[start_index].remove(edge_index);
+fn update_existing_edge(graph: &mut Graph, start_index:usize, new_edge: &Edge){
+    let end_index = new_edge.index_second;
+    let new_weight = new_edge.weight;
+    let edge_index = graph.edges[start_index].iter().position(|x| x.index_second == end_index);
+    match edge_index{
+        None => {
+            graph.edges[start_index].push(Edge{index_second: end_index, weight: new_weight});
+        },
+        Some(idx) => {
+            let old_edge_weight = graph.edges[start_index][idx].weight;
+            if old_edge_weight >= new_weight {
+                graph.edges[start_index].remove(idx);
+            }
+            graph.edges[start_index].push(Edge{index_second: end_index, weight: new_weight});
+        }
     }
-    return Some(old_edge_weight);
+
 
 }
 
-fn remove_existing_edges_if_shorter_are_found(graph: &mut Graph, new_edge: &Edge, new_edge_reverse: &Edge) {
+fn update_existing_edges_if_shorter_are_found(graph: &mut Graph, new_edge: &Edge, new_edge_reverse: &Edge) {
 
     let start_index = new_edge_reverse.index_second;
     let end_index = new_edge.index_second;
-    let old_edge_weight = update_existing_edge(graph, start_index, end_index);
-    if old_edge_weight >= Some(new_edge.weight) {
-        update_existing_edge(graph, end_index, start_index);
-    }
+    //todo: include the start idx in the edge to avoid this
+    update_existing_edge(graph, start_index, new_edge);
+    update_existing_edge(graph, end_index, new_edge_reverse);
 
 }
 
@@ -102,10 +109,7 @@ pub fn construct_graph_from_edges(graph_nodes: &Vec<GraphNode>, edge_data: &str)
             continue;
         }
         let (new_edge, new_edge_reverse) = create_new_edges(start_index, end_index, weight);
-        // todo: make this not dumb
-        remove_existing_edges_if_shorter_are_found(&mut graph, &new_edge, &new_edge_reverse);
-        graph.edges[start_index].push(new_edge);
-        graph.edges[end_index].push(new_edge_reverse);
+        update_existing_edges_if_shorter_are_found(&mut graph, &new_edge, &new_edge_reverse);
 
     }
 
