@@ -163,20 +163,24 @@ mod tests {
         let start_idx = 0;
         let end_idx = 2;
         let edges_from_start = vec![Edge {
+            index_first: 0,
             index_second: 1,
             weight: 2,
         }];
         let edges_from_middle = vec![
             Edge {
+                index_first: 2,
                 index_second: 0,
                 weight: 2,
             },
             Edge {
+                index_first: 1,
                 index_second: 2,
                 weight: 3,
             },
         ];
         let edges_from_end = vec![Edge {
+            index_first: 2,
             index_second: 1,
             weight: 3,
         }];
@@ -195,25 +199,30 @@ mod tests {
         let end_idx = 2;
         let edges_from_start = vec![
             Edge {
+                index_first: 0,
                 index_second: 1,
                 weight: 20,
             },
             Edge {
+                index_first: 0,
                 index_second: 1,
                 weight: 2,
             },
         ];
         let edges_from_middle = vec![
             Edge {
+                index_first: 1,
                 index_second: 0,
                 weight: 2,
             },
             Edge {
+                index_first: 1,
                 index_second: 2,
                 weight: 3,
             },
         ];
         let edges_from_end = vec![Edge {
+            index_first: 2,
             index_second: 1,
             weight: 3,
         }];
@@ -242,20 +251,24 @@ mod tests {
             number_of_nodes: 3,
             edges: vec![
                 vec![Edge {
+                    index_first: 0,
                     index_second: 1,
                     weight: 2,
                 }],
                 vec![
                     Edge {
+                        index_first: 1,
                         index_second: 0,
                         weight: 2,
                     },
                     Edge {
+                        index_first: 1,
                         index_second: 2,
                         weight: 2,
                     },
                 ],
                 vec![Edge {
+                    index_first: 2,
                     index_second: 1,
                     weight: 2,
                 }],
@@ -270,10 +283,12 @@ mod tests {
         let start_idx = 0;
         let end_idx = 2;
         let edges_from_start = vec![Edge {
+            index_first: 2,
             index_second: 1,
             weight: 2,
         }];
         let edges_from_middle = vec![Edge {
+            index_first: 1,
             index_second: 2,
             weight: 3,
         }];
