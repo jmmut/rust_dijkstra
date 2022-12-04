@@ -54,35 +54,27 @@ fn create_new_edge(start_index: usize, end_index: usize, weight: usize) -> Edge 
     return new_edge;
 }
 
-fn update_existing_edge(graph: &mut Graph, new_edge: &Edge, is_reverse: bool) {
+fn update_existing_edge(graph: &mut Graph, new_edge: Edge) {
     
-    let mut start_index = new_edge.index_first;
-    let mut end_index = new_edge.index_second;
-    if is_reverse{
-        start_index = new_edge.index_second;
-        end_index = new_edge.index_first; 
-    }
-
+    let start_index = new_edge.index_first;
+    let end_index = new_edge.index_second;
     let new_weight = new_edge.weight;
     let edge_index = graph.edges[start_index]
         .iter()
         .position(|x| x.index_second == end_index);
     match edge_index {
-        None => {
-            graph.edges[start_index].push(
-                create_new_edge(start_index, end_index, new_weight)
-            );
-        }
+        None => {}
         Some(idx) => {
             let old_edge_weight = graph.edges[start_index][idx].weight;
             if old_edge_weight >= new_weight {
                 graph.edges[start_index].remove(idx);
             }
-            graph.edges[start_index].push(
-                create_new_edge(start_index, end_index, new_weight)
-            );
+            
         }
     }
+    graph.edges[start_index].push(
+        new_edge
+    );
 }
 
 
@@ -123,9 +115,11 @@ pub fn construct_graph_from_edges(
             continue;
         }
         let new_edge = create_new_edge(start_index, end_index, weight);
-        update_existing_edge(&mut graph, &new_edge, false);
+        let new_reverse_edge = create_new_edge(end_index, start_index, weight);
+
+        update_existing_edge(&mut graph, new_edge);
         // same in reverse, assuming bidirectionality of edges
-        update_existing_edge(&mut graph, &new_edge, true);
+        update_existing_edge(&mut graph, new_reverse_edge);
     }
 
     return Ok(graph);
