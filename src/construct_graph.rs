@@ -45,22 +45,24 @@ fn get_edge_info(
     return Ok((start_index, end_index, edge_weight));
 }
 
-fn create_new_edges(start_index: usize, end_index: usize, weight: usize) -> (Edge, Edge) {
+fn create_new_edge(start_index: usize, end_index: usize, weight: usize) -> Edge {
     let new_edge = Edge {
         index_first: start_index,
         index_second: end_index,
         weight,
     };
-    let new_edge_reverse = Edge {
-        index_first: end_index,
-        index_second: start_index,
-        weight,
-    };
-    return (new_edge, new_edge_reverse);
+    return new_edge;
 }
 
-fn update_existing_edge(graph: &mut Graph, start_index: usize, new_edge: &Edge) {
-    let end_index = new_edge.index_second;
+fn update_existing_edge(graph: &mut Graph, new_edge: &Edge, is_reverse: bool) {
+    
+    let mut start_index = new_edge.index_first;
+    let mut end_index = new_edge.index_second;
+    if is_reverse{
+        start_index = new_edge.index_second;
+        end_index = new_edge.index_first; 
+    }
+
     let new_weight = new_edge.weight;
     let edge_index = graph.edges[start_index]
         .iter()
@@ -87,17 +89,7 @@ fn update_existing_edge(graph: &mut Graph, start_index: usize, new_edge: &Edge) 
     }
 }
 
-fn update_existing_edges_if_shorter_are_found(
-    graph: &mut Graph,
-    new_edge: &Edge,
-    new_edge_reverse: &Edge,
-) {
-    let start_index = new_edge_reverse.index_second;
-    let end_index = new_edge.index_second;
-    //todo: include the start idx in the edge to avoid this
-    update_existing_edge(graph, start_index, new_edge);
-    update_existing_edge(graph, end_index, new_edge_reverse);
-}
+
 
 pub fn construct_graph_from_edges(
     graph_nodes: &Vec<GraphNode>,
@@ -134,8 +126,10 @@ pub fn construct_graph_from_edges(
             // self referential edge, discard
             continue;
         }
-        let (new_edge, new_edge_reverse) = create_new_edges(start_index, end_index, weight);
-        update_existing_edges_if_shorter_are_found(&mut graph, &new_edge, &new_edge_reverse);
+        let new_edge = create_new_edge(start_index, end_index, weight);
+        update_existing_edge(&mut graph, &new_edge, false);
+        // same in reverse, assuming bidirectionality of edges
+        update_existing_edge(&mut graph, &new_edge, true);
     }
 
     return Ok(graph);
@@ -231,7 +225,7 @@ mod graph_only_tests {
             edges: vec![
                 vec![
                     Edge {
-                        index_first: 0, 
+                        index_first: 0,
                         index_second: 2,
                         weight: 158,
                     },
@@ -248,7 +242,7 @@ mod graph_only_tests {
                         weight: 45,
                     },
                     Edge {
-                        index_first: 1, 
+                        index_first: 1,
                         index_second: 0,
                         weight: 17,
                     },
