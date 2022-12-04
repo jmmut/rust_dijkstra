@@ -162,28 +162,16 @@ mod tests {
     fn test_dijkstra() {
         let start_idx = 0;
         let end_idx = 2;
-        let edges_from_start = vec![Edge {
-            index_first: 0,
-            index_second: 1,
-            weight: 2,
-        }];
-        let edges_from_middle = vec![
-            Edge {
-                index_first: 2,
-                index_second: 0,
-                weight: 2,
-            },
-            Edge {
-                index_first: 1,
-                index_second: 2,
-                weight: 3,
-            },
+        let edges_from_start = vec![
+            create_new_edge(0, 1, 2),
         ];
-        let edges_from_end = vec![Edge {
-            index_first: 2,
-            index_second: 1,
-            weight: 3,
-        }];
+        let edges_from_middle = vec![
+            create_new_edge(2, 0, 2),
+            create_new_edge(1, 2, 3),
+        ];
+        let edges_from_end = vec![
+            create_new_edge(2,1, 3),
+        ];
 
         let graph = Graph {
             number_of_nodes: 3,
@@ -198,34 +186,16 @@ mod tests {
         let start_idx = 0;
         let end_idx = 2;
         let edges_from_start = vec![
-            Edge {
-                index_first: 0,
-                index_second: 1,
-                weight: 20,
-            },
-            Edge {
-                index_first: 0,
-                index_second: 1,
-                weight: 2,
-            },
+            create_new_edge(0, 1, 20),
+            create_new_edge(0, 1, 2),
         ];
         let edges_from_middle = vec![
-            Edge {
-                index_first: 1,
-                index_second: 0,
-                weight: 2,
-            },
-            Edge {
-                index_first: 1,
-                index_second: 2,
-                weight: 3,
-            },
+            create_new_edge(0, 1, 2),
+            create_new_edge(1, 2, 3),
         ];
-        let edges_from_end = vec![Edge {
-            index_first: 2,
-            index_second: 1,
-            weight: 3,
-        }];
+        let edges_from_end = vec![
+            create_new_edge(2, 3, 1)
+        ];
 
         let graph = Graph {
             number_of_nodes: 3,
@@ -250,28 +220,16 @@ mod tests {
         let expected_graph = Graph {
             number_of_nodes: 3,
             edges: vec![
-                vec![Edge {
-                    index_first: 0,
-                    index_second: 1,
-                    weight: 2,
-                }],
                 vec![
-                    Edge {
-                        index_first: 1,
-                        index_second: 0,
-                        weight: 2,
-                    },
-                    Edge {
-                        index_first: 1,
-                        index_second: 2,
-                        weight: 2,
-                    },
+                    create_new_edge(0, 1, 2)
                 ],
-                vec![Edge {
-                    index_first: 2,
-                    index_second: 1,
-                    weight: 2,
-                }],
+                vec![
+                    create_new_edge(1, 0, 2),
+                    create_new_edge(1, 2, 2),
+                ],
+                vec![
+                    create_new_edge(2, 1, 2),
+                ],
             ],
         };
         assert_eq!(expected_graph, graph);
@@ -282,16 +240,12 @@ mod tests {
     fn test_edges_not_explicitly_in_both_directions() {
         let start_idx = 0;
         let end_idx = 2;
-        let edges_from_start = vec![Edge {
-            index_first: 2,
-            index_second: 1,
-            weight: 2,
-        }];
-        let edges_from_middle = vec![Edge {
-            index_first: 1,
-            index_second: 2,
-            weight: 3,
-        }];
+        let edges_from_start = vec![
+            create_new_edge(2, 1, 2)
+        ];
+        let edges_from_middle = vec![
+            create_new_edge(1, 2, 3)
+        ];
 
         let graph = Graph {
             number_of_nodes: 3,

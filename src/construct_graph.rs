@@ -69,22 +69,18 @@ fn update_existing_edge(graph: &mut Graph, new_edge: &Edge, is_reverse: bool) {
         .position(|x| x.index_second == end_index);
     match edge_index {
         None => {
-            graph.edges[start_index].push(Edge {
-                index_first: start_index,
-                index_second: end_index,
-                weight: new_weight,
-            });
+            graph.edges[start_index].push(
+                create_new_edge(start_index, end_index, new_weight)
+            );
         }
         Some(idx) => {
             let old_edge_weight = graph.edges[start_index][idx].weight;
             if old_edge_weight >= new_weight {
                 graph.edges[start_index].remove(idx);
             }
-            graph.edges[start_index].push(Edge {
-                index_first: start_index,
-                index_second: end_index,
-                weight: new_weight,
-            });
+            graph.edges[start_index].push(
+                create_new_edge(start_index, end_index, new_weight)
+            );
         }
     }
 }
@@ -224,40 +220,16 @@ mod graph_only_tests {
             number_of_nodes: 3,
             edges: vec![
                 vec![
-                    Edge {
-                        index_first: 0,
-                        index_second: 2,
-                        weight: 158,
-                    },
-                    Edge {
-                        index_first: 0,
-                        index_second: 1,
-                        weight: 17,
-                    },
+                    create_new_edge(0, 2, 158),
+                    create_new_edge(0, 1, 17),
                 ],
                 vec![
-                    Edge {
-                        index_first: 1,
-                        index_second: 2,
-                        weight: 45,
-                    },
-                    Edge {
-                        index_first: 1,
-                        index_second: 0,
-                        weight: 17,
-                    },
+                    create_new_edge(1, 2, 45),
+                    create_new_edge(1, 0, 17),
                 ],
                 vec![
-                    Edge {
-                        index_first: 2,
-                        index_second: 0,
-                        weight: 158,
-                    },
-                    Edge {
-                        index_first: 2,
-                        index_second: 1,
-                        weight: 45,
-                    },
+                    create_new_edge(2, 0, 158),
+                    create_new_edge(2, 1, 45),
                 ],
             ],
         };
