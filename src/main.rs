@@ -1,9 +1,6 @@
-use assert_cmd::prelude::*; // Add methods on commands
-use predicates::prelude::*; // Used for writing assertions
-
 include!("construct_graph.rs");
 include!("find_path.rs");
-
+include!("parse_input.rs");
 
 fn main() -> Result<(), String> {
     env_logger::init();
@@ -31,7 +28,7 @@ fn main() -> Result<(), String> {
         let result = get_human_readable_solution(route, &graph_nodes, &graph);
         match result {
             Err(err) => println!("An error occured on the path {}. Error: {}", route, err),
-            Ok(_) => println!("{}", result.unwrap())
+            Ok(_) => println!("{}", result.unwrap()),
         }
     }
 
