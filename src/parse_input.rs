@@ -42,8 +42,8 @@ fn get_edge_info(
     let edge_info: Vec<&str> = edge.split(" ").collect();
     if edge_info.len() != 3 {
         return Err(format!(
-            "Route {edge:?} is invalid. Please check the input.",
-            edge = edge_info
+            "Route {:?} is invalid. Please check the input.",
+            edge_info
         ));
     }
     let start_edge = edge_info[0];
