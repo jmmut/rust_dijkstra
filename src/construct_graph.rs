@@ -19,6 +19,11 @@ pub struct GraphNode {
     node_name: String,
 }
 
+impl Graph {
+    pub fn get_edge_weight(&self, start_index: usize, end_index: usize) -> usize {
+        self.edges[start_index][end_index].weight
+    }
+}
 
 fn create_new_edge(start_index: usize, end_index: usize, weight: usize) -> Edge {
     let new_edge = Edge {
@@ -173,9 +178,11 @@ mod graph_only_tests {
 
         let graph_nodes: Vec<GraphNode> = get_nodes(&node_data);
         let graph = construct_graph_from_edges(&graph_nodes, &edge_data);
-        // graph should not contain the I->G 167 path, as this should be updated by the I->G 17 path.
 
         assert_eq!(Ok(expected_graph), graph);
+
+        // graph should not contain the I->G 167 path, as this should be updated by the I->G 17 path.
+        assert_eq!(graph.unwrap().get_edge_weight(0, 1), 17);
     }
     #[test]
     fn test_route_finding_with_incorrect_number_of_nodes() {
