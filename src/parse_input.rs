@@ -53,8 +53,8 @@ fn get_edge_info(
         edge_weight = edge_info[2]
     ));
 
-    let start_index = get_node_index_from_node_name(start_edge.to_string(), graph_nodes)?;
-    let end_index = get_node_index_from_node_name(end_edge.to_string(), graph_nodes)?;
+    let start_index = get_node_index_from_node_name(start_edge, graph_nodes)?;
+    let end_index = get_node_index_from_node_name(end_edge, graph_nodes)?;
 
     return Ok((start_index, end_index, edge_weight));
 }
@@ -79,8 +79,8 @@ fn get_route(
         ));
     }
 
-    let start_idx = get_node_index_from_node_name(start_str.to_string(), graph_nodes)?;
-    let end_idx = get_node_index_from_node_name(end_str.to_string(), graph_nodes)?;
+    let start_idx = get_node_index_from_node_name(start_str, graph_nodes)?;
+    let end_idx = get_node_index_from_node_name(end_str, graph_nodes)?;
 
     return Ok((start_idx, end_idx));
 }
